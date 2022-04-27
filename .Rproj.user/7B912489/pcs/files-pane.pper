@@ -1,9 +1,9 @@
 {
-    "path" : "/Users/Dinesh/Dinesh/Twitter Sentiment Analysis/TwitterSentimentAnalysis",
-    "sortOrder" : [
+    "path": "/Users/Dinesh/Dinesh/Twitter Sentiment Analysis/TwitterSentimentAnalysis",
+    "sortOrder": [
         {
-            "ascending" : true,
-            "columnIndex" : 2
+            "columnIndex": 2,
+            "ascending": true
         }
     ]
 }
