@@ -187,7 +187,7 @@ ggplot(output, aes(x=Sentiment,y=Count))+
 text_corpus <- Corpus(VectorSource(tweetsSubSet$text))
 text_corpus <- tm_map(text_corpus, content_transformer(tolower))
 text_corpus <- tm_map(text_corpus, function(x)removeWords(x,stopwords("english")))
-text_corpus <- tm_map(text_corpus, removeWords, c("inflation"))
+text_corpus <- tm_map(text_corpus, removeWords, c("inflation", "will", "can"))
 tdm <- TermDocumentMatrix(text_corpus)
 tdm <- as.matrix(tdm)
 tdm <- sort(rowSums(tdm), decreasing = TRUE)
@@ -197,10 +197,132 @@ wordcloud(text_corpus, min.freq = 1, max.words = 100, scale = c(2.2,1),
           colors=brewer.pal(8, "Dark2"), random.color = T, random.order = F)
 
 
+ggplot(tdm[1:20,], aes(x=reorder(word, freq), y=freq)) + 
+  geom_bar(stat="identity") +
+  xlab("Terms") + 
+  ylab("Count") + 
+  coord_flip() +
+  theme(axis.text=element_text(size=7)) +
+  ggtitle('Most common word frequency plot') +
+  ggeasy::easy_center_title()
 
 
 
+#bigram
+bi.gram.words <- tweetsSubSet %>% 
+  unnest_tokens(
+    input = text, 
+    output = bigram, 
+    token = 'ngrams', 
+    n = 2
+  ) %>% 
+  filter(! is.na(bigram))
 
+bi.gram.words %>% 
+  select(bigram) %>% 
+  head(10)
+
+extra.stop.words <- c('https')
+stopwords.df <- tibble(
+  word = c(stopwords(kind = 'es'),
+           stopwords(kind = 'en'),
+           extra.stop.words)
+)
+
+bi.gram.words %<>% 
+  separate(col = bigram, into = c('word1', 'word2'), sep = ' ') %>% 
+  filter(! word1 %in% stopwords.df$word) %>% 
+  filter(! word2 %in% stopwords.df$word) %>% 
+  filter(! is.na(word1)) %>% 
+  filter(! is.na(word2)) 
+bi.gram.count <- bi.gram.words %>% 
+  dplyr::count(word1, word2, sort = TRUE) %>% 
+  dplyr::rename(weight = n)
+
+bi.gram.count %>% head()
+
+
+threshold <- 50
+
+# For visualization purposes we scale by a global factor. 
+ScaleWeight <- function(x, lambda) {
+  x / lambda
+}
+
+network <-  bi.gram.count %>%
+  filter(weight > threshold) %>%
+  mutate(weight = ScaleWeight(x = weight, lambda = 2E3)) %>% 
+  graph_from_data_frame(directed = FALSE)
+
+plot(
+  network, 
+  vertex.size = 1,
+  vertex.label.color = 'black', 
+  vertex.label.cex = 0.7, 
+  vertex.label.dist = 1,
+  edge.color = 'gray', 
+  main = 'Bigram Count Network', 
+  sub = glue('Weight Threshold: {threshold}'), 
+  alpha = 50
+)
+
+V(network)$degree <- strength(graph = network)
+
+# Compute the weight shares.
+E(network)$width <- E(network)$weight/max(E(network)$weight)
+
+plot(
+  network, 
+  vertex.color = 'lightblue',
+  # Scale node size by degree.
+  vertex.size = 2*V(network)$degree,
+  vertex.label.color = 'black', 
+  vertex.label.cex = 0.6, 
+  vertex.label.dist = 1.6,
+  edge.color = 'gray', 
+  # Set edge width proportional to the weight relative value.
+  edge.width = 3*E(network)$width ,
+  main = 'Bigram Count Network', 
+  sub = glue('Weight Threshold: {threshold}'), 
+  alpha = 50
+)
+
+threshold <- 50
+
+network <-  bi.gram.count %>%
+  filter(weight > threshold) %>%
+  graph_from_data_frame(directed = FALSE)
+
+# Store the degree.
+V(network)$degree <- strength(graph = network)
+# Compute the weight shares.
+E(network)$width <- E(network)$weight/max(E(network)$weight)
+
+# Create networkD3 object.
+network.D3 <- igraph_to_networkD3(g = network)
+# Define node size.
+network.D3$nodes %>% mutate(Degree = (1E-2)*V(network)$degree)
+# Define color group
+network.D3$nodes %>% mutate(Group = 1)
+# Define edges width. 
+network.D3$links$Width <- 10*E(network)$width
+
+forceNetwork(
+  Links = network.D3$links, 
+  Nodes = network.D3$nodes, 
+  Source = 'source', 
+  Target = 'target',
+  NodeID = 'name',
+  Group = 'Group', 
+  opacity = 0.9,
+  Value = 'Width',
+  Nodesize = 'Degree', 
+  # We input a JavaScript function.
+  linkWidth = JS("function(d) { return Math.sqrt(d.value); }"), 
+  fontSize = 12,
+  zoom = TRUE, 
+  opacityNoHover = 1
+)
 
 
 
