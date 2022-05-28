@@ -6,6 +6,5 @@
 
 # Songs listened at time as well. What type of song is listened during the time by the tweets.
 
-# Expectations of the people and the economy. Need to get keywords for economic terms like Boom Bust Bull Sell like that.
+# Expectations of the people and the economy. Need to get keywords for economic terms like Boom Bust Bullish Sell Recession Bubble TechBubble
 
-# 

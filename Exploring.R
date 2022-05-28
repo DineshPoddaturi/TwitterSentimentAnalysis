@@ -11,21 +11,13 @@ library(httpuv)
 library(rtweet)
 
 #Note: Replace below with your credentials following above reference
-api_key <- "oJ6CmPerh7jHxP5ZHazRuez1U"
-api_secret_key <- "zVKRrtlXKdWBPsFKaBs4h6z9cS0nQrZwoRI6dmhfDcdV3qDS20"
-access_token <- "3914872158-vYvnOj6VE5ZpXcexVAu3YcMPh54uVdtfu4LLGVk"
-access_token_secret <- "jhC9VDAZNbFj4mpPoWbRU3eq1KCrghMqIeiMpkCylcG8i"
-#Note: This will ask us permission for direct authentication, type '1' for yes:
-# setup_twitter_oauth(api_key,api_secret,access_token,access_token_secret)
-library(rtweet)
+api_key <- "yourAPIKey"
+api_secret_key <- "yourAPISecretKey"
+access_token <- "yourAccessToken"
+access_token_secret <- "yourAccessTokenSecret"
 
-## authenticate via web browser
-token <- create_token(
-  app = "RangoUnchained",
-  consumer_key = api_key,
-  consumer_secret = api_secret_key,
-  access_token = access_token,
-  access_secret = access_token_secret)
+### The following code setup direct authentication to access twitter
+setup_twitter_oauth(api_key, api_secret_key, access_token, access_token_secret)
 
 ## pre-processing text: This function is to clean the text of the tweet of 
 ## any symbols, and other unnecessary items that are non-readable 
@@ -59,18 +51,21 @@ cleanText <- function(x){
   return(x)
 }
 
-search_term <- '#inflation'
-by <- 'day'
+search_term <- "#recession"
+by <- 'hour'
 
-tweets <- search_tweets(q = "#inflation" , 
-                        n = 10000, retryonratelimit = TRUE, lang="en", include_rts = FALSE)
+# tweets <- search_tweets(q = search_term , 
+#                         n = 100000, retryonratelimit = TRUE, lang="en", include_rts = FALSE)
 
-tweets <- tweets %>% as.data.frame()
-nrow(tweets)
-names(tweets)
-tweets[1,]
+tweets <- searchTwitter(searchString = search_term, n=100000, lang="en")
 
-tweetsSubSet <- tweets %>% select(created_at, text, hashtags)
+tweetsDF <- twListToDF(tweets)
+
+names(tweetsDF)
+
+tweetsDF <- tweetsDF %>% filter(isRetweet == "FALSE")
+
+tweetsSubSet <- tweetsDF %>% select(created, text)
 nrow(tweetsSubSet)
 
 # Ignore graphical Parameters to avoid input errors
@@ -81,22 +76,24 @@ tweetsSubSet$text <- cleanText(tweetsSubSet$text)
 tweetsSubSet %>% head() 
 
 tweetsSubSet <- tweetsSubSet %>% 
-  mutate(Created_At_Round = created_at %>% round(units = 'hours') %>% as.POSIXct())
+  mutate(Created_At_Round = created %>% round(units = 'hours') %>% as.POSIXct())
 
-tweetsSubSet %>% pull(created_at) %>% min()
+tweetsSubSet %>% pull(created) %>% min()
 
-tweetsSubSet %>% pull(created_at) %>% max()
+tweetsSubSet %>% pull(created) %>% max()
 
-plt <- tweetsSubSet %>% 
+tweetHourPlot <- tweetsSubSet %>% 
   count(Created_At_Round) %>% 
   ggplot(mapping = aes(x = Created_At_Round, y = n)) +
-  theme_light() +
+  theme_economist() +
+  geom_point() + 
   geom_line() +
   xlab(label = 'Date') +
-  ylab(label = NULL) +
-  ggtitle(label = 'Number of Tweets per Hour')
+  ylab(label = 'Count') +
+  labs(title = paste0('Tweets mentioning "',
+                         search_term,'" by hour') , caption = 'Source: Twitter API')
 
-plt %>% ggplotly()
+# tweetHourPlot %>% ggplotly()
 
 ### Retrieving positive and negative words
 positive <- scan('OpinionLexiconEnglish/positive-words.txt', what = 'character', comment.char = ';')
@@ -167,11 +164,14 @@ analysisSentiment <- sentimentScore(sentences = tweetsSubSet$text, pos.words = p
 
 analysisSentiment %>%
   ggplot(aes(x=score)) + 
-  geom_histogram(binwidth = 1, fill = "lightblue")+ 
+  geom_histogram(binwidth = 1, fill = "olivedrab")+ 
   ylab("Frequency") + 
-  xlab("sentiment score") +
+  xlab("Sentiment score") +
   ggtitle("Distribution of Sentiment scores of the tweets") +
+  theme_classic() + 
   ggeasy::easy_center_title()
+
+
 
 neutral <- length(which(analysisSentiment$score == 0))
 positive <- length(which(analysisSentiment$score > 0))
@@ -182,212 +182,37 @@ output <- data.frame(Sentiment,Count)
 output$Sentiment<-factor(output$Sentiment,levels=Sentiment)
 ggplot(output, aes(x=Sentiment,y=Count))+
   geom_bar(stat = "identity", aes(fill = Sentiment))+
-  ggtitle("Barplot of Sentiment for inflation")
+  ggtitle("Barplot of Sentiment for recession")+
+  theme_classic() + 
+  ggeasy::easy_center_title()
 
-text_corpus <- Corpus(VectorSource(tweetsSubSet$text))
-text_corpus <- tm_map(text_corpus, content_transformer(tolower))
-text_corpus <- tm_map(text_corpus, function(x)removeWords(x,stopwords("english")))
-text_corpus <- tm_map(text_corpus, removeWords, c("inflation", "will", "can"))
-tdm <- TermDocumentMatrix(text_corpus)
-tdm <- as.matrix(tdm)
-tdm <- sort(rowSums(tdm), decreasing = TRUE)
-tdm <- data.frame(word = names(tdm), freq = tdm)
+
+
+textCorpus <- Corpus(VectorSource(tweetsSubSet$text))
+textCorpus <- tm_map(textCorpus, content_transformer(tolower))
+textCorpus <- tm_map(textCorpus, function(x)removeWords(x,stopwords("english")))
+textCorpus <- tm_map(textCorpus, removeWords, c("recession", "will", "can"))
+termDocMat <- TermDocumentMatrix(textCorpus)
+termDocMat <- as.matrix(termDocMat)
+termDocMat <- sort(rowSums(termDocMat), decreasing = TRUE)
+termDocMat <- data.frame(word = names(termDocMat), freq = tdm)
 set.seed(123)
-wordcloud(text_corpus, min.freq = 1, max.words = 100, scale = c(2.2,1),
+
+wordcloud(textCorpus, min.freq = 5, max.words = 200, 
           colors=brewer.pal(8, "Dark2"), random.color = T, random.order = F)
 
 
-ggplot(tdm[1:20,], aes(x=reorder(word, freq), y=freq)) + 
+ggplot(tdm[1:20,], aes(x=reorder(word, freq), y=freq, fill = word)) + 
   geom_bar(stat="identity") +
   xlab("Terms") + 
   ylab("Count") + 
   coord_flip() +
   theme(axis.text=element_text(size=7)) +
   ggtitle('Most common word frequency plot') +
-  ggeasy::easy_center_title()
+  ggeasy::easy_center_title() +
+  theme(legend.position="none")
 
 
 
-#bigram
-bi.gram.words <- tweetsSubSet %>% 
-  unnest_tokens(
-    input = text, 
-    output = bigram, 
-    token = 'ngrams', 
-    n = 2
-  ) %>% 
-  filter(! is.na(bigram))
-
-bi.gram.words %>% 
-  select(bigram) %>% 
-  head(10)
-
-extra.stop.words <- c('https')
-stopwords.df <- tibble(
-  word = c(stopwords(kind = 'es'),
-           stopwords(kind = 'en'),
-           extra.stop.words)
-)
-
-bi.gram.words %<>% 
-  separate(col = bigram, into = c('word1', 'word2'), sep = ' ') %>% 
-  filter(! word1 %in% stopwords.df$word) %>% 
-  filter(! word2 %in% stopwords.df$word) %>% 
-  filter(! is.na(word1)) %>% 
-  filter(! is.na(word2)) 
-bi.gram.count <- bi.gram.words %>% 
-  dplyr::count(word1, word2, sort = TRUE) %>% 
-  dplyr::rename(weight = n)
-
-bi.gram.count %>% head()
-
-
-threshold <- 50
-
-# For visualization purposes we scale by a global factor. 
-ScaleWeight <- function(x, lambda) {
-  x / lambda
-}
-
-network <-  bi.gram.count %>%
-  filter(weight > threshold) %>%
-  mutate(weight = ScaleWeight(x = weight, lambda = 2E3)) %>% 
-  graph_from_data_frame(directed = FALSE)
-
-plot(
-  network, 
-  vertex.size = 1,
-  vertex.label.color = 'black', 
-  vertex.label.cex = 0.7, 
-  vertex.label.dist = 1,
-  edge.color = 'gray', 
-  main = 'Bigram Count Network', 
-  sub = glue('Weight Threshold: {threshold}'), 
-  alpha = 50
-)
-
-V(network)$degree <- strength(graph = network)
-
-# Compute the weight shares.
-E(network)$width <- E(network)$weight/max(E(network)$weight)
-
-plot(
-  network, 
-  vertex.color = 'lightblue',
-  # Scale node size by degree.
-  vertex.size = 2*V(network)$degree,
-  vertex.label.color = 'black', 
-  vertex.label.cex = 0.6, 
-  vertex.label.dist = 1.6,
-  edge.color = 'gray', 
-  # Set edge width proportional to the weight relative value.
-  edge.width = 3*E(network)$width ,
-  main = 'Bigram Count Network', 
-  sub = glue('Weight Threshold: {threshold}'), 
-  alpha = 50
-)
-
-threshold <- 50
-
-network <-  bi.gram.count %>%
-  filter(weight > threshold) %>%
-  graph_from_data_frame(directed = FALSE)
-
-# Store the degree.
-V(network)$degree <- strength(graph = network)
-# Compute the weight shares.
-E(network)$width <- E(network)$weight/max(E(network)$weight)
-
-# Create networkD3 object.
-network.D3 <- igraph_to_networkD3(g = network)
-# Define node size.
-network.D3$nodes %>% mutate(Degree = (1E-2)*V(network)$degree)
-# Define color group
-network.D3$nodes %>% mutate(Group = 1)
-# Define edges width. 
-network.D3$links$Width <- 10*E(network)$width
-
-forceNetwork(
-  Links = network.D3$links, 
-  Nodes = network.D3$nodes, 
-  Source = 'source', 
-  Target = 'target',
-  NodeID = 'name',
-  Group = 'Group', 
-  opacity = 0.9,
-  Value = 'Width',
-  Nodesize = 'Degree', 
-  # We input a JavaScript function.
-  linkWidth = JS("function(d) { return Math.sqrt(d.value); }"), 
-  fontSize = 12,
-  zoom = TRUE, 
-  opacityNoHover = 1
-)
-
-
-
-###### A different type of analysis
-sentimentData <- get_sentiments("afinn") %>% as.data.frame() %>% mutate(score=value) %>% 
-  select(word,score) %>% arrange(score)
-
-### Here we split the column into tokens
-sentiments <- tweets[,3:5] %>% unnest_tokens(output = 'word', input = 'text')
-
-mergedSentiments <- merge(sentiments, sentimentData, by = 'word')
-
-mergedSentiments$hour <- format(round(mergedSentiments$created_at, units="hours"), format="%H:%M")
-str(mergedSentiments)
-
-mergedSentiments$day <- format(round(mergedSentiments$created_at, units="days"))
-
-pivotMergedSentiments <- mergedSentiments %>% group_by(hour) %>% summarise(sentiment = mean(score)) %>% as.data.frame()
-
-pivotMergedSentiments1 <- mergedSentiments %>% group_by(day) %>% summarise(sentiment = mean(score)) %>% as.data.frame()
-
-
-pivotMergedSentiments %>% ggplot(aes(x=hour,y=sentiment)) + geom_line(group = 1) + geom_point() + theme_minimal()+ 
-  labs(title = paste0('Average sentiment of tweetings mentioning "',search_term,'"'))
-
-pivotMergedSentiments1 %>% ggplot(aes(x=day,y=sentiment)) + geom_line(group = 1) + geom_point() + theme_minimal()+ 
-  labs(title = paste0('Average sentiment of tweetings mentioning "',search_term,'"'))
-       
-       
-
-ggplot(pivotMergedSentiments[-1,], aes(x = hour, y = sentiment)) + 
-  geom_line(group = 1) + geom_point() + theme_minimal() + 
-  labs(title = paste0('Average sentiment of tweetings mentioning "',search_term,'"'),
-       subtitle = paste0(pivotMergedSentiments$hour[2],' - ',pivotMergedSentiments$hour[nrow(pivotMergedSentiments)],' on ', 
-                         format(mergedSentiments$created_at[1], '%d %B %Y')),
-                                                                                                                x = 'Date', y = 'Sentiment', caption = 'Source: Twitter API')
-
-
-
-
-##### Getting the sentiment score
-
-
-
-
-#### Another way of getting tweets
-# setup_twitter_oauth(api_key,
-#                     api_secret_key,
-#                     access_token,
-#                     access_token_secret)
-# search_term <- '#inflation'
-# tweets1 <- searchTwitter(search_term, n = 1000)
-
-
-
-
-
-
-
-# There are many resources describing methods to estimate sentiment. For the purpose of this tutorial, we will use a very simple algorithm which assigns sentiment score of the text by simply counting the number of occurrences of “positive” and “negative” words in a tweet.
-# 
-# Hu & Liu have published an “Opinion Lexicon” that categorizes approximately 6,800 words as positive or negative, which can be downloaded from this link:
-#   
-#   http://www.cs.uic.edu/~liub/FBS/sentiment-analysis.html
-
-# https://github.com/jeffreybreen/twitter-sentiment-analysis-tutorial-201107
 
 
