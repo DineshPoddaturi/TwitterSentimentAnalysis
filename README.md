@@ -1,10 +1,9 @@
 # TwitterSentimentAnalysis
- 
-# A study of regional obesity (state-by-state), correlated to the food tweets from that region. One of the findings was that food keywords in tweets from more obese states were related to junk and fatty foods.
 
-# Types of songs listened by tweets from different regions. Need to get keywords for songs.
+This repo contains the code and report of the project named Natural Language Processing and Sentiment Analysis.
 
-# Songs listened at time as well. What type of song is listened during the time by the tweets.
+Exploring.R contains all the code of the project.
 
-# Expectations of the people and the economy. Need to get keywords for economic terms like Boom Bust Bullish Sell Recession Bubble TechBubble
+Natural Language Processing and Sentiment Analysis.pdf contains the report of the project.
+
 
