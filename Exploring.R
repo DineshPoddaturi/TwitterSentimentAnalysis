@@ -19,7 +19,7 @@ access_token_secret <- "yourAccessTokenSecret"
 ### The following code setup direct authentication to access twitter
 setup_twitter_oauth(api_key, api_secret_key, access_token, access_token_secret)
 
-## pre-processing text: This function is to clean the text of the tweet of 
+## pre-processing text: This function is to clean the text of the tweet from
 ## any symbols, and other unnecessary items that are non-readable 
 cleanText <- function(x){
   # convert to lower case
@@ -53,9 +53,6 @@ cleanText <- function(x){
 
 search_term <- "#recession"
 by <- 'hour'
-
-# tweets <- search_tweets(q = search_term , 
-#                         n = 100000, retryonratelimit = TRUE, lang="en", include_rts = FALSE)
 
 tweets <- searchTwitter(searchString = search_term, n=100000, lang="en")
 
@@ -106,6 +103,8 @@ positiveWords <- c(positive,'upgrade','Congrats','prizes','prize','thanks','thnx
 negativeWords <- c(negative,'wtf','wait','waiting','epicfail','Fight','fighting',
               'arrest','no','not')
 
+### This function reads the sentences from tweets, compares with the positive words and negative words which are passed as 
+### arguments and computes score
 sentimentScore <- function(sentences, pos.words, neg.words){
   # require(plyr)
   # require(stringr)
@@ -170,7 +169,6 @@ analysisSentiment %>%
   ggtitle("Distribution of Sentiment scores of the tweets") +
   theme_classic() + 
   ggeasy::easy_center_title()
-
 
 
 neutral <- length(which(analysisSentiment$score == 0))
