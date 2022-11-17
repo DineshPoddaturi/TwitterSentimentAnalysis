@@ -96,7 +96,7 @@ names(tweetsDF)
 [13] "isRetweet"     "retweeted"     "longitude"     "latitude" 
 ```
 
-Here I extract the information that will be used for analysis. First I filter the tweets by checking whether the tweet is a re-tweet. I want to analyze the original tweets, so I remove all the re-tweets from my data frame ^[This is solely my personal preference. I prefer original content. Re-tweets simply are simply duplicates of the original content.]. After filtering the tweets I extract the time stamp, the text, and the hashtags of each individual tweet. The text of the tweets is then cleaned using the *cleanText* function defined above.
+Here I extract the information that will be used for analysis. First I filter the tweets by checking whether the tweet is a re-tweet. I want to analyze the original tweets, so I remove all the re-tweets from my data frame ^[This is solely my personal preference. I prefer original content. Re-tweets are simply duplicates of the original content.]. After filtering the tweets I extract the time stamp, the text, and the hashtags of each individual tweet. The text of the tweets is then cleaned using the *cleanText* function defined above.
 
 ```{r eval= FALSE}
 
@@ -143,7 +143,7 @@ tweetHourPlot
   \includegraphics[width=1\linewidth]{images/tweetsByHour.png}
 \end{figure}
 
-The above plot visualizes the tweets mentioning the keyword for each day by the hour. From the limited data I have I observe that the tweets mentioning recession are decreasing over time. However, it appears that the economy (i.e., people in the economy) tends to tweet about recession between noon and night every day ^[The peaks in the above plot are indicative of those time-stamps].
+The above plot visualizes the tweets mentioning the keyword for each day by the hour. From the limited data I have I observe that the tweets mentioning recession are decreasing over time. However, it appears that the economy (i.e., people in the economy) tend to tweet about recession between noon and night every day ^[The peaks in the above plot are indicative of those time-stamps].
 
 ## Sentiment Analysis
 
@@ -168,15 +168,6 @@ The following function matches the text with pre-determined positive and negativ
 ```{r eval= FALSE}
 
 sentimentScore <- function(sentences, pos.words, neg.words){
-  # require(plyr)
-  # require(stringr)
-  
-  # we are giving vector of sentences as input. 
-  # plyr will handle a list or a vector as an "l" for us
-  # we want a simple array of scores back, so we use "l" + "a" + "ply" = laply:
-  # sentences = tweetsSubSet$text
-  # pos.words = positiveWords
-  # neg.words = negativeWords
   
   scores <- lapply(sentences, function(sentence, pos.words, neg.words) {
     
