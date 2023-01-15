@@ -260,8 +260,7 @@ ggplot(output, aes(x=Sentiment,y=Count))+
   \includegraphics[width=1\linewidth]{images/barPlotSentiments.png}
 \end{figure}
 
-The bar plot above further supports the claim, there is a strong negative sentiment toward recession in the economy. Followed by neutral and positive sentiment. Notice that there is a positive sentiment toward recession. This is crucial in any sentiment analysis. A strong sentiment towards something doesn't necessarily mean there is no positive sentiment in the economy. 
-
+The bar plot above further supports the claim, there is a strong negative sentiment toward recession in the economy. Followed by neutral and positive sentiment. Notice that there is a slight positive sentiment toward recession. This is crucial in any sentiment analysis. A strong sentiment towards something doesn't necessarily mean there is no alternative sentiment in the economy. 
 
 Now, I plot a simple word cloud of the tweets mentioning our keyword. I remove the keyword and other *stop words* from the tweets to observe and plot the cloud.
 
@@ -286,7 +285,7 @@ wordcloud(textCorpus, min.freq = 5, max.words = 200,
   \includegraphics[width=1\linewidth]{images/wordCloud.png}
 \end{figure}
 
-The above word cloud illustrates the most common words associated with the keyword *recession* in the original tweets. They are inflation, economy, market, financial, fed, and global. 
+The above word cloud illustrates the most common words associated with the keyword *recession* in the original tweets. They are inflation, economy, layoffs, global, market, and bank. 
  
 Below I visualize the most common words occurring with the keyword.
 
